@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { HeadphonesIcon } from '@lucide/vue';
 import { Switch } from 'shonk-ui';
 import { t } from '@/shared/lib';
 
@@ -15,9 +14,7 @@ const emit = defineEmits<{
 
 <template>
 	<header class="flex items-center gap-3">
-		<span class="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground" aria-hidden="true">
-			<HeadphonesIcon class="size-5" />
-		</span>
+		<img src="/icon/icon.svg" alt="" class="size-9 shrink-0">
 
 		<div class="min-w-0 flex-1">
 			<h1 class="text-base leading-tight font-semibold">Dual Dub</h1>

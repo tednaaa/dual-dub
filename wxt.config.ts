@@ -14,6 +14,10 @@ export default defineConfig({
 		default_locale: 'en',
 		permissions: ['storage', 'scripting', 'webRequest', 'declarativeNetRequestWithHostAccess'],
 		host_permissions: ['<all_urls>'],
+		commands: {
+			'toggle-dual-dub': { suggested_key: { default: 'Alt+Shift+D' }, description: '__MSG_commandToggle__' },
+			'swap-ears': { suggested_key: { default: 'Alt+Shift+S' }, description: '__MSG_commandSwap__' },
+		},
 		...(browser === 'firefox'
 			? {
 					browser_specific_settings: {
