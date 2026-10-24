@@ -1,0 +1,168 @@
+{
+	"extName": {
+		"message": "Dual Dub"
+	},
+	"extDescription": {
+		"message": "Две озвучки одного видео сразу: одна в левом наушнике, другая в правом"
+	},
+	"commandToggle": {
+		"message": "Включить или выключить Dual Dub"
+	},
+	"commandSwap": {
+		"message": "Поменять уши местами"
+	},
+	"enable": {
+		"message": "Включить две озвучки"
+	},
+	"earLeft": {
+		"message": "Левое ухо"
+	},
+	"earRight": {
+		"message": "Правое ухо"
+	},
+	"notAssigned": {
+		"message": "Озвучка не выбрана"
+	},
+	"takeCurrent": {
+		"message": "Взять текущую озвучку"
+	},
+	"volume": {
+		"message": "$EAR$ — громкость",
+		"placeholders": {
+			"ear": {
+				"content": "$1"
+			}
+		}
+	},
+	"mute": {
+		"message": "$EAR$ — без звука",
+		"placeholders": {
+			"ear": {
+				"content": "$1"
+			}
+		}
+	},
+	"level": {
+		"message": "$EAR$ — уровень сигнала",
+		"placeholders": {
+			"ear": {
+				"content": "$1"
+			}
+		}
+	},
+	"swapEars": {
+		"message": "Поменять уши местами"
+	},
+	"testHeadphones": {
+		"message": "Проверить наушники"
+	},
+	"testingLeft": {
+		"message": "Слева…"
+	},
+	"testingRight": {
+		"message": "Справа…"
+	},
+	"howToUse": {
+		"message": "Как пользоваться"
+	},
+	"step1Title": {
+		"message": "Запусти видео"
+	},
+	"step1Description": {
+		"message": "Кликни по плееру сайта и включи серию"
+	},
+	"step2Title": {
+		"message": "Возьми первую озвучку"
+	},
+	"step2Description": {
+		"message": "Нажми «Взять текущую озвучку» у левого уха"
+	},
+	"step3Title": {
+		"message": "Переключи озвучку"
+	},
+	"step3Description": {
+		"message": "Выбери в плеере сайта вторую озвучку"
+	},
+	"step4Title": {
+		"message": "Возьми вторую озвучку"
+	},
+	"step4Description": {
+		"message": "Нажми «Взять текущую озвучку» у правого уха"
+	},
+	"step5Title": {
+		"message": "Включи"
+	},
+	"step5Description": {
+		"message": "Переключатель вверху"
+	},
+	"emptyTitle": {
+		"message": "Здесь нечего озвучивать"
+	},
+	"emptyDescription": {
+		"message": "Открой страницу с видеоплеером"
+	},
+	"alertSuspendedTitle": {
+		"message": "Звук ждёт клика"
+	},
+	"alertSuspendedDescription": {
+		"message": "Кликни один раз по плееру сайта"
+	},
+	"alertSilentTitle": {
+		"message": "$EAR$ — тишина",
+		"placeholders": {
+			"ear": {
+				"content": "$1"
+			}
+		}
+	},
+	"alertSilentDescription": {
+		"message": "Сайт мог закрыть эту озвучку. Выбери в плеере другую и возьми её заново"
+	},
+	"alertLoadFailedTitle": {
+		"message": "$EAR$ — озвучка не загрузилась",
+		"placeholders": {
+			"ear": {
+				"content": "$1"
+			}
+		}
+	},
+	"alertLoadFailedDescription": {
+		"message": "Переключи озвучку в плеере туда и обратно и возьми её заново"
+	},
+	"alertSameTitle": {
+		"message": "В обоих ушах одна озвучка"
+	},
+	"alertSameDescription": {
+		"message": "Выбери в плеере другую озвучку и возьми её для одного уха"
+	},
+	"alertNoVideoTitle": {
+		"message": "Видео не найдено"
+	},
+	"alertNoVideoDescription": {
+		"message": "Запусти видео в плеере и включи снова"
+	},
+	"alertFailedTitle": {
+		"message": "Не удалось включить"
+	},
+	"alertFailedDescription": {
+		"message": "Перезагрузи страницу и попробуй снова"
+	},
+	"shortcutToggle": {
+		"message": "вкл / выкл"
+	},
+	"statusOn": {
+		"message": "Две озвучки играют"
+	},
+	"statusOff": {
+		"message": "Выключено"
+	},
+	"permissionTitle": {
+		"message": "Нужен доступ к сайтам"
+	},
+	"permissionDescription": {
+		"message": "Без него расширение не видит озвучки в плеере"
+	},
+	"permissionGrant": {
+		"message": "Разрешить доступ"
+	}
+}

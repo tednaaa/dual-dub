@@ -1,5 +1,22 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shonk-ui";
+@import "shonk-ui/themes/acorn.css";
 
 @custom-variant dark (&:where(.dark, .dark *));
+
+@layer base {
+	body {
+		@apply w-[360px] bg-background text-foreground antialiased;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	*,
+	*::before,
+	*::after {
+		animation-duration: 0.01ms !important;
+		animation-iteration-count: 1 !important;
+		transition-duration: 0.01ms !important;
+	}
+}

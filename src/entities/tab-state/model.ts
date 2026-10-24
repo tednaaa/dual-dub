@@ -63,3 +63,7 @@ export function assignEar(state: TabState, ear: Ear): TabState {
 export function playerFrame(state: TabState): number | undefined {
 	return state.streams.at(-1)?.frameId ?? state.ears.left?.frameId ?? state.ears.right?.frameId;
 }
+
+export function swapEars(state: TabState): TabState {
+	return { ...state, ears: { left: state.ears.right, right: state.ears.left } };
+}

@@ -9,8 +9,9 @@ export default defineConfig({
 		plugins: [tailwindcss()],
 	}),
 	manifest: ({ browser }) => ({
-		name: 'Dual Dub',
-		description: 'Two dubs of one video at once: one in the left ear, another in the right',
+		name: '__MSG_extName__',
+		description: '__MSG_extDescription__',
+		default_locale: 'en',
 		permissions: ['storage', 'scripting', 'webRequest', 'declarativeNetRequestWithHostAccess'],
 		host_permissions: ['<all_urls>'],
 		...(browser === 'firefox'

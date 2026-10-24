@@ -1,15 +1,28 @@
+import type { EarSettings } from '@/entities/preferences';
 import type { AudioRouter, HiddenPlayer } from '@/features/dual-audio';
-import type { BackgroundRequest, Ear, PlayerCommand, PlayerStatus, StartResult, StreamSource } from '@/shared/api';
+import type { Ear, PlayerCommand, PlayerPing, PlayerReport, RuntimeRequest, StartResult, StreamSource } from '@/shared/api';
+import { earGain, earSettings } from '@/entities/preferences';
 import { createAudioRouter, createHiddenPlayer, findMasterVideo, silenceMaster, syncWithMaster } from '@/features/dual-audio';
+import { PLAYER_REPORT_PORT } from '@/shared/api';
 
 const EARS: Ear[] = ['left', 'right'];
+const REPORT_INTERVAL_MS = 66;
 
 interface Session {
 	router: AudioRouter;
 	players: Map<Ear, HiddenPlayer>;
 	master: HTMLVideoElement;
-	unsync: () => void;
-	unsilence: () => void;
+	release: (() => void)[];
+}
+
+function applySettings(router: AudioRouter, settings: Record<Ear, EarSettings>) {
+	EARS.forEach(ear => router.setVolume(ear, earGain(settings[ear])));
+}
+
+function resumeOnClick(router: AudioRouter) {
+	const resume = () => void router.context.resume();
+	document.addEventListener('pointerdown', resume, { capture: true });
+	return () => document.removeEventListener('pointerdown', resume, { capture: true });
 }
 
 export default defineContentScript({
@@ -21,13 +34,12 @@ export default defineContentScript({
 			if (!session)
 				return;
 
-			const { router, players, unsync, unsilence } = session;
+			const { router, players, release } = session;
 			session = undefined;
-			unsync();
-			unsilence();
+			release.forEach(dispose => dispose());
 			players.forEach(player => player.destroy());
 			void router.close();
-			void browser.runtime.sendMessage({ type: 'revoke-cors' } satisfies BackgroundRequest);
+			void browser.runtime.sendMessage({ type: 'revoke-cors' } satisfies RuntimeRequest);
 		}
 
 		async function start(streams: Record<Ear, StreamSource>): Promise<StartResult> {
@@ -35,13 +47,13 @@ export default defineContentScript({
 
 			const master = findMasterVideo();
 			if (!master)
-				return { ok: false, error: 'No video in this frame' };
+				return { ok: false, issue: 'no-video' };
 
-			await browser.runtime.sendMessage({ type: 'allow-cors' } satisfies BackgroundRequest);
+			await browser.runtime.sendMessage({ type: 'allow-cors' } satisfies RuntimeRequest);
 
 			const router = createAudioRouter();
 			const players = new Map<Ear, HiddenPlayer>();
-			const current: Session = { router, players, master, unsync: () => {}, unsilence: () => {} };
+			const current: Session = { router, players, master, release: [] };
 			session = current;
 
 			try {
@@ -54,52 +66,59 @@ export default defineContentScript({
 					if (!master.paused)
 						void player.element.play();
 				}
-				current.unsync = syncWithMaster(master, Array.from(players.values(), player => player.element));
-				current.unsilence = silenceMaster(master);
-				await router.context.resume();
-				return { ok: true, audio: router.context.state };
+				applySettings(router, await earSettings.getValue());
+				current.release.push(
+					syncWithMaster(master, Array.from(players.values(), player => player.element)),
+					earSettings.watch(settings => applySettings(router, settings)),
+					resumeOnClick(router),
+					silenceMaster(master),
+				);
+				void router.context.resume();
+				return { ok: true };
 			}
-			catch (error) {
+			catch {
 				stop();
-				return { ok: false, error: String(error) };
+				return { ok: false, issue: 'failed' };
 			}
 		}
 
-		function status(): PlayerStatus {
+		function report(): PlayerReport | undefined {
 			if (!session)
-				return null;
+				return;
 
-			const { router, players } = session;
-			const earStatus = (ear: Ear) => {
-				const player = players.get(ear);
-				return {
-					readyState: player?.element.readyState ?? 0,
-					paused: player?.element.paused ?? true,
-					currentTime: player?.element.currentTime ?? 0,
-					level: router.level(ear),
-					error: player?.error() ?? null,
-				};
+			const { router, players, master } = session;
+			const earReport = (ear: Ear) => ({ level: router.level(ear), error: players.get(ear)?.error() ?? null });
+			return {
+				audio: router.context.state,
+				playing: !master.paused,
+				ears: { left: earReport('left'), right: earReport('right') },
 			};
-			return { origin: location.origin, masterTime: session.master.currentTime, left: earStatus('left'), right: earStatus('right') };
 		}
 
 		browser.runtime.onMessage.addListener((message: PlayerCommand, _sender, sendResponse) => {
 			switch (message.type) {
 				case 'ping':
-					sendResponse(true);
+					sendResponse({ running: session !== undefined } satisfies PlayerPing);
 					return;
 				case 'start':
 					void start(message.streams).then(sendResponse);
 					return true;
 				case 'stop':
 					stop();
-					return;
-				case 'volume':
-					session?.router.setVolume(message.ear, message.value);
-					return;
-				case 'status':
-					sendResponse(status());
+					sendResponse(true);
 			}
+		});
+
+		browser.runtime.onConnect.addListener((port) => {
+			if (port.name !== PLAYER_REPORT_PORT)
+				return;
+
+			const timer = setInterval(() => {
+				const current = report();
+				if (current)
+					port.postMessage(current);
+			}, REPORT_INTERVAL_MS);
+			port.onDisconnect.addListener(() => clearInterval(timer));
 		});
 
 		ctx.onInvalidated(stop);

@@ -1,0 +1,168 @@
+{
+	"extName": {
+		"message": "Dual Dub"
+	},
+	"extDescription": {
+		"message": "Two dubs of one video at once: one in the left ear, another in the right"
+	},
+	"commandToggle": {
+		"message": "Turn Dual Dub on or off"
+	},
+	"commandSwap": {
+		"message": "Swap ears"
+	},
+	"enable": {
+		"message": "Play two dubs"
+	},
+	"earLeft": {
+		"message": "Left ear"
+	},
+	"earRight": {
+		"message": "Right ear"
+	},
+	"notAssigned": {
+		"message": "No dub yet"
+	},
+	"takeCurrent": {
+		"message": "Take current dub"
+	},
+	"volume": {
+		"message": "$EAR$ — volume",
+		"placeholders": {
+			"ear": {
+				"content": "$1"
+			}
+		}
+	},
+	"mute": {
+		"message": "$EAR$ — mute",
+		"placeholders": {
+			"ear": {
+				"content": "$1"
+			}
+		}
+	},
+	"level": {
+		"message": "$EAR$ — signal level",
+		"placeholders": {
+			"ear": {
+				"content": "$1"
+			}
+		}
+	},
+	"swapEars": {
+		"message": "Swap ears"
+	},
+	"testHeadphones": {
+		"message": "Test headphones"
+	},
+	"testingLeft": {
+		"message": "Left…"
+	},
+	"testingRight": {
+		"message": "Right…"
+	},
+	"howToUse": {
+		"message": "How to use"
+	},
+	"step1Title": {
+		"message": "Play the video"
+	},
+	"step1Description": {
+		"message": "Click the site player and start the episode"
+	},
+	"step2Title": {
+		"message": "Take the first dub"
+	},
+	"step2Description": {
+		"message": "Press “Take current dub” on the left ear"
+	},
+	"step3Title": {
+		"message": "Switch the dub"
+	},
+	"step3Description": {
+		"message": "Pick the second dub in the site player"
+	},
+	"step4Title": {
+		"message": "Take the second dub"
+	},
+	"step4Description": {
+		"message": "Press “Take current dub” on the right ear"
+	},
+	"step5Title": {
+		"message": "Turn it on"
+	},
+	"step5Description": {
+		"message": "Use the switch at the top"
+	},
+	"emptyTitle": {
+		"message": "Nothing to dub here"
+	},
+	"emptyDescription": {
+		"message": "Open a page with a video player"
+	},
+	"alertSuspendedTitle": {
+		"message": "Sound is waiting for a click"
+	},
+	"alertSuspendedDescription": {
+		"message": "Click the site player once"
+	},
+	"alertSilentTitle": {
+		"message": "$EAR$ — silent",
+		"placeholders": {
+			"ear": {
+				"content": "$1"
+			}
+		}
+	},
+	"alertSilentDescription": {
+		"message": "The site may block this dub. Pick another one in the player and take it again"
+	},
+	"alertLoadFailedTitle": {
+		"message": "$EAR$ — dub failed to load",
+		"placeholders": {
+			"ear": {
+				"content": "$1"
+			}
+		}
+	},
+	"alertLoadFailedDescription": {
+		"message": "Switch the dub in the player back and forth, then take it again"
+	},
+	"alertSameTitle": {
+		"message": "Both ears play one dub"
+	},
+	"alertSameDescription": {
+		"message": "Pick another dub in the player and take it for one ear"
+	},
+	"alertNoVideoTitle": {
+		"message": "No video found"
+	},
+	"alertNoVideoDescription": {
+		"message": "Start the video in the player and turn on again"
+	},
+	"alertFailedTitle": {
+		"message": "Could not turn on"
+	},
+	"alertFailedDescription": {
+		"message": "Reload the page and try again"
+	},
+	"shortcutToggle": {
+		"message": "on / off"
+	},
+	"statusOn": {
+		"message": "Two dubs playing"
+	},
+	"statusOff": {
+		"message": "Off"
+	},
+	"permissionTitle": {
+		"message": "Site access needed"
+	},
+	"permissionDescription": {
+		"message": "Without it the extension cannot see the dubs in the player"
+	},
+	"permissionGrant": {
+		"message": "Allow access"
+	}
+}

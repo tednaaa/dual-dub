@@ -7,25 +7,37 @@ export interface StreamSource {
 	kind: StreamKind;
 }
 
+export type StartIssue = 'no-video' | 'no-ears' | 'failed';
+
+export type StartResult = { ok: true } | { ok: false; issue: StartIssue };
+
 export type PlayerCommand
 	= | { type: 'ping' }
 		| { type: 'start'; streams: Record<Ear, StreamSource> }
-		| { type: 'stop' }
-		| { type: 'volume'; ear: Ear; value: number }
-		| { type: 'status' };
+		| { type: 'stop' };
 
-export type StartResult
-	= | { ok: true; audio: AudioContextState }
-		| { ok: false; error: string };
+export interface PlayerPing {
+	running: boolean;
+}
 
-export interface EarStatus {
-	readyState: number;
-	paused: boolean;
-	currentTime: number;
+export interface EarReport {
 	level: number;
 	error: string | null;
 }
 
-export type PlayerStatus = (Record<Ear, EarStatus> & { origin: string; masterTime: number }) | null;
+export interface PlayerReport {
+	audio: AudioContextState;
+	playing: boolean;
+	ears: Record<Ear, EarReport>;
+}
 
-export type BackgroundRequest = { type: 'allow-cors' } | { type: 'revoke-cors' };
+export const PLAYER_REPORT_PORT = 'player-report';
+
+export type RuntimeRequest
+	= | { type: 'allow-cors' }
+		| { type: 'revoke-cors' }
+		| { type: 'assign'; tabId: number; ear: Ear }
+		| { type: 'swap'; tabId: number }
+		| { type: 'enable'; tabId: number }
+		| { type: 'disable'; tabId: number }
+		| { type: 'refresh'; tabId: number };

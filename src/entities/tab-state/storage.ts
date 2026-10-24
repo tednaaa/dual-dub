@@ -9,6 +9,10 @@ export async function readTabState(tabId: number): Promise<TabState> {
 	return await storage.getItem<TabState>(key(tabId)) ?? EMPTY_TAB_STATE;
 }
 
+export function watchTabState(tabId: number, callback: (state: TabState) => void) {
+	return storage.watch<TabState>(key(tabId), state => callback(state ?? EMPTY_TAB_STATE));
+}
+
 export function updateTabState(tabId: number, update: (state: TabState) => TabState): Promise<TabState> {
 	const next = queue.then(async () => {
 		const state = update(await readTabState(tabId));
