@@ -1,0 +1,14 @@
+.devenv*
+devenv.local.nix
+devenv.local.yaml
+
+node_modules/
+
+.output/
+.wxt/
+web-ext.config.ts
+
+.idea/
+.DS_Store
+
+*.log

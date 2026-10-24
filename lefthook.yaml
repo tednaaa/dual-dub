@@ -1,0 +1,16 @@
+pre-commit:
+  commands:
+    lint:
+      glob: '*.{js,ts,vue,json,yaml,yml,md}'
+      exclude:
+        - pnpm-lock.yaml
+      run: pnpm exec eslint --fix {staged_files}
+      stage_fixed: true
+
+    typecheck:
+      glob: '*.{ts,vue}'
+      run: pnpm typecheck
+
+    test:
+      glob: 'src/**/*.{ts,vue}'
+      run: pnpm exec vitest related --run --passWithNoTests {staged_files}

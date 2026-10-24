@@ -1,0 +1,11 @@
+minimumReleaseAgeExcludePrune: true
+minimumReleaseAgeExclude:
+  - shonk-ui@0.14.0
+  - '@tednaaa/eslint-config@0.1.1'
+
+trustPolicy: no-downgrade
+shellEmulator: true
+
+allowBuilds:
+  lefthook: false
+  vue-demi: false
