@@ -1,6 +1,6 @@
 import type { AudioRouter, HiddenPlayer } from '@/features/dual-audio';
 import type { BackgroundRequest, Ear, PlayerCommand, PlayerStatus, StartResult, StreamSource } from '@/shared/api';
-import { createAudioRouter, createHiddenPlayer } from '@/features/dual-audio';
+import { createAudioRouter, createHiddenPlayer, findMasterVideo, silenceMaster, syncWithMaster } from '@/features/dual-audio';
 
 const EARS: Ear[] = ['left', 'right'];
 
@@ -8,7 +8,8 @@ interface Session {
 	router: AudioRouter;
 	players: Map<Ear, HiddenPlayer>;
 	master: HTMLVideoElement;
-	masterMuted: boolean;
+	unsync: () => void;
+	unsilence: () => void;
 }
 
 export default defineContentScript({
@@ -20,18 +21,19 @@ export default defineContentScript({
 			if (!session)
 				return;
 
-			const { router, players, master, masterMuted } = session;
+			const { router, players, unsync, unsilence } = session;
 			session = undefined;
+			unsync();
+			unsilence();
 			players.forEach(player => player.destroy());
 			void router.close();
-			master.muted = masterMuted;
 			void browser.runtime.sendMessage({ type: 'revoke-cors' } satisfies BackgroundRequest);
 		}
 
 		async function start(streams: Record<Ear, StreamSource>): Promise<StartResult> {
 			stop();
 
-			const master = document.querySelector('video');
+			const master = findMasterVideo();
 			if (!master)
 				return { ok: false, error: 'No video in this frame' };
 
@@ -39,17 +41,21 @@ export default defineContentScript({
 
 			const router = createAudioRouter();
 			const players = new Map<Ear, HiddenPlayer>();
-			session = { router, players, master, masterMuted: master.muted };
+			const current: Session = { router, players, master, unsync: () => {}, unsilence: () => {} };
+			session = current;
 
 			try {
 				for (const ear of EARS) {
 					const player = createHiddenPlayer(streams[ear], master.currentTime);
 					players.set(ear, player);
 					router.connect(ear, player.element);
+					player.element.defaultPlaybackRate = master.playbackRate;
+					player.element.playbackRate = master.playbackRate;
 					if (!master.paused)
 						void player.element.play();
 				}
-				master.muted = true;
+				current.unsync = syncWithMaster(master, Array.from(players.values(), player => player.element));
+				current.unsilence = silenceMaster(master);
 				await router.context.resume();
 				return { ok: true, audio: router.context.state };
 			}
@@ -74,7 +80,7 @@ export default defineContentScript({
 					error: player?.error() ?? null,
 				};
 			};
-			return { origin: location.origin, left: earStatus('left'), right: earStatus('right') };
+			return { origin: location.origin, masterTime: session.master.currentTime, left: earStatus('left'), right: earStatus('right') };
 		}
 
 		browser.runtime.onMessage.addListener((message: PlayerCommand, _sender, sendResponse) => {

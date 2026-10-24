@@ -26,6 +26,6 @@ export interface EarStatus {
 	error: string | null;
 }
 
-export type PlayerStatus = (Record<Ear, EarStatus> & { origin: string }) | null;
+export type PlayerStatus = (Record<Ear, EarStatus> & { origin: string; masterTime: number }) | null;
 
 export type BackgroundRequest = { type: 'allow-cors' } | { type: 'revoke-cors' };
