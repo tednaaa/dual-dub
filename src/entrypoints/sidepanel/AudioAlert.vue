@@ -1,13 +1,13 @@
 <script setup lang="ts">
 import type { AlertVariant } from 'shonk-ui';
-import type { PopupAlert } from './alerts';
+import type { PanelAlert } from './alerts';
 import type { MessageKey } from '@/shared/lib';
 import { Alert } from 'shonk-ui';
 import { computed } from 'vue';
 import { t } from '@/shared/lib';
 
 const props = defineProps<{
-	alert: PopupAlert;
+	alert: PanelAlert;
 }>();
 
 const EAR_LABEL = { left: 'earLeft', right: 'earRight' } as const;
@@ -24,7 +24,7 @@ interface AlertContent {
 	description: string;
 }
 
-function alertContent(alert: PopupAlert): AlertContent {
+function alertContent(alert: PanelAlert): AlertContent {
 	switch (alert.kind) {
 		case 'start-failed': {
 			const [title, description] = START_ISSUE_MESSAGES[alert.issue];

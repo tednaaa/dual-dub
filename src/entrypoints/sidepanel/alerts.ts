@@ -1,7 +1,7 @@
 import type { CapturedStream } from '@/entities/tab-state';
 import type { Ear, PlayerReport, StartIssue } from '@/shared/api';
 
-export type PopupAlert
+export type PanelAlert
 	= | { kind: 'start-failed'; issue: StartIssue }
 		| { kind: 'same-stream' }
 		| { kind: 'suspended' }
@@ -17,7 +17,7 @@ interface AlertInput {
 
 const EARS: Ear[] = ['left', 'right'];
 
-export function pickAlert({ startIssue, ears, report, silent }: AlertInput): PopupAlert | null {
+export function pickAlert({ startIssue, ears, report, silent }: AlertInput): PanelAlert | null {
 	if (startIssue)
 		return { kind: 'start-failed', issue: startIssue };
 	if (ears.left && ears.left.url === ears.right?.url)

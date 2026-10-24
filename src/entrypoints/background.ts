@@ -8,6 +8,10 @@ import { parseVariants, streamKind } from '@/shared/lib';
 const BADGE_TEXT = 'L·R';
 const BADGE_COLOR = '#8c5a3c';
 
+interface FirefoxSidebar {
+	sidebarAction: { toggle: () => Promise<void> };
+}
+
 async function allowCors(tabId: number, frameUrl: string) {
 	const { origin, hostname } = new URL(frameUrl);
 	await browser.declarativeNetRequest.updateSessionRules({
@@ -131,6 +135,16 @@ function handleRequest(message: RuntimeRequest, sender: Browser.runtime.MessageS
 	}
 }
 
+function openPanelOnActionClick() {
+	if (!import.meta.env.FIREFOX) {
+		void browser.sidePanel.setPanelBehavior({ openPanelOnActionClick: true });
+		return;
+	}
+
+	const { sidebarAction } = browser as unknown as FirefoxSidebar;
+	browser.action.onClicked.addListener(() => void sidebarAction.toggle());
+}
+
 async function activeTabId() {
 	const [tab] = await browser.tabs.query({ active: true, lastFocusedWindow: true });
 	return tab?.id;
@@ -138,6 +152,7 @@ async function activeTabId() {
 
 export default defineBackground(() => {
 	void browser.action.setBadgeBackgroundColor({ color: BADGE_COLOR });
+	openPanelOnActionClick();
 
 	browser.webRequest.onBeforeRequest.addListener((details) => {
 		const kind = details.tabId < 0 ? null : streamKind(details.url, details.type);

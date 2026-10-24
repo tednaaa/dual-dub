@@ -3,7 +3,7 @@ import type { EarSettings } from '@/entities/preferences';
 import type { Ear, StartIssue, StartResult } from '@/shared/api';
 import { ArrowDownUpIcon, ChevronDownIcon, MonitorOffIcon, ShieldCheckIcon } from '@lucide/vue';
 import { Button, Collapsible, CollapsibleContent, CollapsibleTrigger } from 'shonk-ui';
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { earSettings, onboarded } from '@/entities/preferences';
 import { onboardingStep } from '@/entities/tab-state';
 import { t } from '@/shared/lib';
@@ -28,6 +28,9 @@ const isOnboarded = useStorageItem(onboarded);
 
 const startIssue = ref<StartIssue | null>(null);
 const helpOpen = ref(false);
+watch(tabId, () => {
+	startIssue.value = null;
+});
 
 const running = computed(() => playerFrameId.value !== null);
 const step = computed(() => onboardingStep(state.value));
