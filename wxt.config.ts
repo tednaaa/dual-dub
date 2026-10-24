@@ -11,7 +11,7 @@ export default defineConfig({
 	manifest: ({ browser }) => ({
 		name: 'Dual Dub',
 		description: 'Two dubs of one video at once: one in the left ear, another in the right',
-		permissions: ['storage', 'webRequest', 'declarativeNetRequestWithHostAccess'],
+		permissions: ['storage', 'scripting', 'webRequest', 'declarativeNetRequestWithHostAccess'],
 		host_permissions: ['<all_urls>'],
 		...(browser === 'firefox'
 			? {
