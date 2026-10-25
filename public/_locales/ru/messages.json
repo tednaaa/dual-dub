@@ -83,6 +83,17 @@
 	"swapEars": {
 		"message": "Поменять уши местами"
 	},
+	"rememberedForSite": {
+		"message": "Озвучки ушей запомнены для $SITE$",
+		"placeholders": {
+			"site": {
+				"content": "$1"
+			}
+		}
+	},
+	"forget": {
+		"message": "Забыть"
+	},
 	"testHeadphones": {
 		"message": "Проверить наушники"
 	},

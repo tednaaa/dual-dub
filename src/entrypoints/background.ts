@@ -1,13 +1,15 @@
 import type { Browser } from 'wxt/browser';
+import type { SiteDubs } from '@/entities/preferences';
 import type { CapturedSource, Dub, TabState } from '@/entities/tab-state';
-import type { DubStream, PlayerCommand, PlayerPing, RuntimeRequest, StartResult } from '@/shared/api';
+import type { DubStream, Ear, PlayerCommand, PlayerPing, RuntimeRequest, StartResult } from '@/shared/api';
 import type { Format, ParsedManifest, StreamKind } from '@/shared/lib';
-import { onboarded } from '@/entities/preferences';
-import { assignEar, clearTabState, findDub, loadPage, navigate, playerFrame, readTabState, recordManifest, recordSegment, recordSource, swapEars, updateTabState } from '@/entities/tab-state';
+import { onboarded, recallTrack, rememberTrack, siteDubs } from '@/entities/preferences';
+import { assignEar, clearTabState, findDub, loadPage, navigate, playerFrame, readTabState, recordManifest, recordSegment, recordSource, restoreEars, swapEars, updateTabState } from '@/entities/tab-state';
 import { detectKind, FORMATS } from '@/shared/lib';
 
 const BADGE_TEXT = 'L·R';
 const BADGE_COLOR = '#8c5a3c';
+const EARS: Ear[] = ['left', 'right'];
 
 interface FirefoxSidebar {
 	sidebarAction: { toggle: () => Promise<void> };
@@ -87,8 +89,12 @@ async function captureManifest(tabId: number, frameId: number, url: string, kind
 	const format = FORMATS[kind];
 	const manifest = format.parse && claimManifest(tabId, url) ? await fetchInFrame(tabId, frameId, url) : null;
 	const parsed = manifest === null ? null : parseManifest(format, manifest, url);
-	if (parsed)
-		await changeTabState(tabId, state => recordManifest(state, url, parsed));
+	if (!parsed)
+		return;
+
+	await changeTabState(tabId, state => recordManifest(state, url, parsed));
+	if (parsed.tracks.length > 1)
+		await restoreSiteDubs(tabId, url);
 }
 
 async function captureSource(tabId: number, captured: CapturedSource) {
@@ -163,19 +169,80 @@ async function refreshRunning(tabId: number) {
 		await setRunning(tabId, null);
 }
 
+async function siteOf(tabId: number) {
+	const tab = await browser.tabs.get(tabId).catch(() => undefined);
+	return tab?.url ? new URL(tab.url).hostname : undefined;
+}
+
+async function updateSiteDubs(tabId: number, update: (current: SiteDubs | undefined) => SiteDubs | undefined) {
+	const site = await siteOf(tabId);
+	if (!site)
+		return;
+
+	const { [site]: current, ...others } = await siteDubs.getValue();
+	const next = update(current);
+	if (next || current)
+		await siteDubs.setValue(next ? { ...others, [site]: next } : others);
+}
+
+function rememberedEars(state: TabState): SiteDubs['ears'] {
+	return Object.fromEntries(EARS.flatMap((ear) => {
+		const dub = findDub(state.sources, state.ears[ear]);
+		const remembered = dub && dub.source.tracks.length > 1 ? rememberTrack(dub.source.tracks, dub.track.id) : undefined;
+		return remembered ? [[ear, remembered]] : [];
+	}));
+}
+
+async function rememberEars(tabId: number, state: TabState) {
+	const ears = rememberedEars(state);
+	await updateSiteDubs(tabId, current => Object.keys(ears).length > 0 ? { ears, autoStart: current?.autoStart ?? false } : undefined);
+}
+
+async function rememberAutoStart(tabId: number, autoStart: boolean) {
+	await updateSiteDubs(tabId, current => current && { ...current, autoStart });
+}
+
+async function restoreSiteDubs(tabId: number, url: string) {
+	const { ears } = await cachedTabState(tabId);
+	const site = ears.left || ears.right ? undefined : await siteOf(tabId);
+	const remembered = site ? (await siteDubs.getValue())[site] : undefined;
+	if (!remembered)
+		return;
+
+	const state = await changeTabState(tabId, current => restoreEars(current, url, (tracks, ear) => {
+		const track = remembered.ears[ear];
+		return track && recallTrack(tracks, track);
+	}));
+	if (remembered.autoStart && state.ears.left && state.ears.right)
+		await startDualDub(tabId);
+}
+
 async function changeEars(tabId: number, update: (state: TabState) => TabState) {
 	const state = await changeTabState(tabId, update);
+	await rememberEars(tabId, state);
 	if (state.playerFrameId !== null)
 		await startDualDub(tabId);
+}
+
+async function enableDualDub(tabId: number) {
+	const result = await startDualDub(tabId);
+	if (result.ok)
+		await rememberAutoStart(tabId, true);
+	return result;
+}
+
+async function disableDualDub(tabId: number) {
+	await stopDualDub(tabId);
+	await rememberAutoStart(tabId, false);
 }
 
 async function toggleDualDub(tabId: number) {
 	await refreshRunning(tabId);
 	const { playerFrameId } = await readTabState(tabId);
 	if (playerFrameId === null)
-		await startDualDub(tabId);
+		await enableDualDub(tabId);
 	else
-		await stopDualDub(tabId);
+		await disableDualDub(tabId);
 }
 
 function handleRequest(message: RuntimeRequest, sender: Browser.runtime.MessageSender): Promise<unknown> | undefined {
@@ -190,9 +257,9 @@ function handleRequest(message: RuntimeRequest, sender: Browser.runtime.MessageS
 		case 'swap':
 			return changeEars(message.tabId, swapEars);
 		case 'enable':
-			return startDualDub(message.tabId);
+			return enableDualDub(message.tabId);
 		case 'disable':
-			return stopDualDub(message.tabId);
+			return disableDualDub(message.tabId);
 		case 'refresh':
 			return refreshRunning(message.tabId);
 	}

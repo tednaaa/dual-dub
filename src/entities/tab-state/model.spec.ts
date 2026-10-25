@@ -2,7 +2,7 @@ import type { CapturedSource, TabState } from './model';
 import type { Track } from '@/shared/lib';
 import { describe, expect, it } from 'vitest';
 import { MAIN_TRACK } from '@/shared/lib';
-import { assignEar, EMPTY_TAB_STATE, loadPage, navigate, playerFrame, recordManifest, recordSegment, recordSource } from './model';
+import { assignEar, EMPTY_TAB_STATE, loadPage, navigate, playerFrame, recordManifest, recordSegment, recordSource, restoreEars } from './model';
 
 const stream = (url: string, frameId = 3): CapturedSource => ({ url, kind: 'hls', frameId });
 const urls = (state: TabState) => state.sources.map(source => source.url);
@@ -117,6 +117,20 @@ describe('assignEar', () => {
 	});
 });
 
+describe('restoreEars', () => {
+	it('assigns the remembered tracks of a manifest with several tracks', () => {
+		const state = restoreEars(dash, dashUrl, (tracks, ear) => tracks[ear === 'left' ? 1 : 0]);
+
+		expect(state.ears).toEqual({ left: dashDub('1'), right: dashDub('0') });
+	});
+
+	it('keeps the ears picked on this page', () => {
+		const assigned = assignEar(dash, 'left', dashDub('0'));
+
+		expect(restoreEars(assigned, dashUrl, tracks => tracks[1])).toBe(assigned);
+	});
+});
+
 describe('navigate', () => {
 	it('keeps sources when only the hash changes', () => {
 		const state = navigate(withSources(stream('https://a/ru.m3u8')), 'https://site/show/1#t:56');
@@ -131,13 +145,13 @@ describe('navigate', () => {
 	});
 
 	it('keeps only the sources of ears when the page loads again', () => {
-		const ru = { sourceUrl: 'https://a/ru.m3u8', trackId: MAIN_TRACK.id };
-		const assigned = assignEar(navigate(withSources(stream('https://a/ru.m3u8'), stream('https://a/en.m3u8')), 'https://site/show/1'), 'left', ru);
+		const captured = navigate(withSources(stream('https://a/ru.m3u8'), stream('https://a/en.m3u8')), 'https://site/show/1');
+		const assigned = assignEar(captured, 'left', mainDub('https://a/ru.m3u8'));
 
 		const state = loadPage(assigned, 'https://site/show/1');
 
 		expect(urls(state)).toEqual(['https://a/ru.m3u8']);
-		expect(state.ears.left).toEqual(ru);
+		expect(state.ears.left).toEqual(mainDub('https://a/ru.m3u8'));
 	});
 });
 

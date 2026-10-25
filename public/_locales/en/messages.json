@@ -83,6 +83,17 @@
 	"swapEars": {
 		"message": "Swap ears"
 	},
+	"rememberedForSite": {
+		"message": "Ear dubs remembered for $SITE$",
+		"placeholders": {
+			"site": {
+				"content": "$1"
+			}
+		}
+	},
+	"forget": {
+		"message": "Forget"
+	},
 	"testHeadphones": {
 		"message": "Test headphones"
 	},

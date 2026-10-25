@@ -10,6 +10,7 @@ export type PageAccess = 'loading' | 'unsupported' | 'no-permission' | 'ready';
 
 export function useTabState() {
 	const tabId = ref<number>();
+	const site = ref<string>();
 	const state = shallowRef<TabState>(EMPTY_TAB_STATE);
 	const access = ref<PageAccess>('loading');
 	let windowId: number | undefined;
@@ -18,6 +19,7 @@ export function useTabState() {
 
 	function show(next: PageAccess) {
 		tabId.value = undefined;
+		site.value = undefined;
 		state.value = EMPTY_TAB_STATE;
 		access.value = next;
 	}
@@ -48,6 +50,7 @@ export function useTabState() {
 			return;
 
 		tabId.value = id;
+		site.value = new URL(tab.url).hostname;
 		state.value = current;
 		unwatch = watchTabState(id, (next) => {
 			state.value = next;
@@ -83,5 +86,5 @@ export function useTabState() {
 		browser.tabs.onUpdated.removeListener(onUpdated);
 	});
 
-	return { tabId, state, access, grantPermission, send };
+	return { tabId, site, state, access, grantPermission, send };
 }

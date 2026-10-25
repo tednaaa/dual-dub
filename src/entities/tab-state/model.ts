@@ -4,6 +4,7 @@ import { MAIN_TRACK, matchSegment } from '@/shared/lib';
 
 const SOURCES_LIMIT = 20;
 const VARIANTS_LIMIT = 200;
+const EARS: Ear[] = ['left', 'right'];
 
 export interface Source {
 	url: string;
@@ -139,4 +140,15 @@ export function playerFrame(state: TabState): number | undefined {
 
 export function swapEars(state: TabState): TabState {
 	return { ...state, ears: { left: state.ears.right, right: state.ears.left } };
+}
+
+export function restoreEars(state: TabState, sourceUrl: string, pick: (tracks: Track[], ear: Ear) => Track | undefined): TabState {
+	const source = state.sources.find(({ url }) => url === sourceUrl);
+	if (!source || source.tracks.length < 2 || state.ears.left || state.ears.right)
+		return state;
+
+	return EARS.reduce((next, ear) => {
+		const track = pick(source.tracks, ear);
+		return track ? assignEar(next, ear, dubOf(source, track)) : next;
+	}, state);
 }

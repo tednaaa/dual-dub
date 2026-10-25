@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import type { EarSettings } from '@/entities/preferences';
 import type { DubRef, Ear, StartIssue, StartResult } from '@/shared/api';
-import { ArrowDownUpIcon, ChevronDownIcon, MonitorOffIcon, ShieldCheckIcon } from '@lucide/vue';
+import { ArrowDownUpIcon, BookmarkCheckIcon, ChevronDownIcon, MonitorOffIcon, ShieldCheckIcon } from '@lucide/vue';
 import { Button, Collapsible, CollapsibleContent, CollapsibleTrigger } from 'shonk-ui';
 import { computed, ref, watch } from 'vue';
-import { earSettings, onboarded } from '@/entities/preferences';
+import { earSettings, onboarded, siteDubs } from '@/entities/preferences';
 import { hasSingleDub, onboardingStep } from '@/entities/tab-state';
 import { t } from '@/shared/lib';
 import { pickAlert } from './alerts';
@@ -20,11 +20,12 @@ import { useTabState } from './use-tab-state';
 
 const EARS: Ear[] = ['left', 'right'];
 
-const { tabId, state, access, grantPermission, send } = useTabState();
+const { tabId, site, state, access, grantPermission, send } = useTabState();
 const playerFrameId = computed(() => state.value.playerFrameId);
 const { report, silent } = usePlayerReport(tabId, playerFrameId);
 const settings = useStorageItem(earSettings);
 const isOnboarded = useStorageItem(onboarded);
+const rememberedSites = useStorageItem(siteDubs);
 
 const startIssue = ref<StartIssue | null>(null);
 const helpOpen = ref(false);
@@ -36,6 +37,7 @@ const running = computed(() => playerFrameId.value !== null);
 const step = computed(() => onboardingStep(state.value));
 const singleDub = computed(() => hasSingleDub(state.value));
 const canEnable = computed(() => Boolean(state.value.ears.left && state.value.ears.right));
+const rememberedSite = computed(() => site.value && rememberedSites.value[site.value] ? site.value : undefined);
 const alert = computed(() => pickAlert({ startIssue: startIssue.value, ears: state.value.ears, report: report.value, silent: silent.value }));
 
 async function toggle(on: boolean) {
@@ -60,6 +62,10 @@ function assign(ear: Ear, dub: DubRef) {
 
 function updateSettings(ear: Ear, next: EarSettings) {
 	settings.value = { ...settings.value, [ear]: next };
+}
+
+function forget() {
+	rememberedSites.value = Object.fromEntries(Object.entries(rememberedSites.value).filter(([host]) => host !== site.value));
 }
 
 function swap() {
@@ -130,6 +136,12 @@ function swap() {
 						{{ t('swapEars') }}
 					</Button>
 				</template>
+			</div>
+
+			<div v-if="rememberedSite" class="flex items-center gap-2 text-xs text-muted-foreground">
+				<BookmarkCheckIcon class="size-4 shrink-0" />
+				<span class="min-w-0 flex-1">{{ t('rememberedForSite', rememberedSite) }}</span>
+				<Button variant="ghost" size="sm" @click="forget">{{ t('forget') }}</Button>
 			</div>
 		</template>
 
