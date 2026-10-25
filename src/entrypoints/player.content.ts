@@ -1,6 +1,6 @@
 import type { EarSettings } from '@/entities/preferences';
 import type { AudioRouter, HiddenPlayer } from '@/features/dual-audio';
-import type { Ear, PlayerCommand, PlayerPing, PlayerReport, RuntimeRequest, StartResult, StreamSource } from '@/shared/api';
+import type { DubStream, Ear, PlayerCommand, PlayerPing, PlayerReport, RuntimeRequest, StartResult } from '@/shared/api';
 import { earGain, earSettings } from '@/entities/preferences';
 import { createAudioRouter, createHiddenPlayer, findMasterVideo, silenceMaster, syncWithMaster } from '@/features/dual-audio';
 import { PLAYER_REPORT_PORT } from '@/shared/api';
@@ -42,7 +42,7 @@ export default defineContentScript({
 			void browser.runtime.sendMessage({ type: 'revoke-cors' } satisfies RuntimeRequest);
 		}
 
-		async function start(streams: Record<Ear, StreamSource>): Promise<StartResult> {
+		async function start(dubs: Record<Ear, DubStream>): Promise<StartResult> {
 			stop();
 
 			const master = findMasterVideo();
@@ -58,7 +58,7 @@ export default defineContentScript({
 
 			try {
 				for (const ear of EARS) {
-					const player = createHiddenPlayer(streams[ear], master.currentTime);
+					const player = createHiddenPlayer(dubs[ear], master.currentTime);
 					players.set(ear, player);
 					router.connect(ear, player.element);
 					player.element.defaultPlaybackRate = master.playbackRate;
@@ -101,7 +101,7 @@ export default defineContentScript({
 					sendResponse({ running: session !== undefined } satisfies PlayerPing);
 					return;
 				case 'start':
-					void start(message.streams).then(sendResponse);
+					void start(message.dubs).then(sendResponse);
 					return true;
 				case 'stop':
 					stop();

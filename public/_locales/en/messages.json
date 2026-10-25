@@ -23,6 +23,14 @@
 	"notAssigned": {
 		"message": "No dub yet"
 	},
+	"dubNumber": {
+		"message": "Dub $NUMBER$",
+		"placeholders": {
+			"number": {
+				"content": "$1"
+			}
+		}
+	},
 	"takeCurrent": {
 		"message": "Take current dub"
 	},

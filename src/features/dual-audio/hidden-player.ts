@@ -1,5 +1,9 @@
-import type { StreamSource } from '@/shared/api';
-import Hls from 'hls.js';
+import type { AttachPlayer } from './players/types';
+import type { DubStream } from '@/shared/api';
+import type { StreamKind } from '@/shared/lib';
+import { attachDash } from './players/dash';
+import { attachHls } from './players/hls';
+import { attachMp4 } from './players/mp4';
 
 export interface HiddenPlayer {
 	element: HTMLVideoElement;
@@ -7,46 +11,32 @@ export interface HiddenPlayer {
 	destroy: () => void;
 }
 
-export function createHiddenPlayer(source: StreamSource, startAt: number): HiddenPlayer {
+const PLAYERS: Record<StreamKind, AttachPlayer> = { hls: attachHls, dash: attachDash, mp4: attachMp4 };
+
+export function createHiddenPlayer(dub: DubStream, startAt: number): HiddenPlayer {
 	const element = document.createElement('video');
 	element.crossOrigin = 'anonymous';
 	element.preload = 'auto';
 	element.playsInline = true;
 
 	let error: string | null = null;
-	element.addEventListener('error', () => {
-		error = element.error?.message || `MediaError ${element.error?.code}`;
-	});
-
-	const release = () => {
-		element.pause();
-		element.removeAttribute('src');
-		element.load();
+	const fail = (message: string) => {
+		error = message;
 	};
-
-	if (source.kind === 'mp4') {
-		element.src = source.url;
-		element.currentTime = startAt;
-		return { element, error: () => error, destroy: release };
-	}
-
-	if (!Hls.isSupported())
-		throw new Error('MediaSource is unavailable in this frame');
-
-	const hls = new Hls({ enableWorker: false, capLevelToPlayerSize: true, startLevel: 0, startPosition: startAt });
-	hls.on(Hls.Events.ERROR, (_event, data) => {
-		if (data.fatal)
-			error = `${data.type}: ${data.details} ${data.response?.code ?? ''}`.trim();
+	element.addEventListener('error', () => {
+		fail(element.error?.message || `MediaError ${element.error?.code}`);
 	});
-	hls.loadSource(source.url);
-	hls.attachMedia(element);
+
+	const detach = PLAYERS[dub.kind](element, dub, startAt, fail);
 
 	return {
 		element,
 		error: () => error,
 		destroy: () => {
-			hls.destroy();
-			release();
+			detach();
+			element.pause();
+			element.removeAttribute('src');
+			element.load();
 		},
 	};
 }

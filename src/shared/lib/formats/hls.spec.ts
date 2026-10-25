@@ -1,29 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { parseVariants, streamKind } from './stream-url';
-
-describe('streamKind', () => {
-	it('detects an HLS manifest regardless of query', () => {
-		expect(streamKind('https://cdn.example/x/master.m3u8?token=abc', 'xmlhttprequest')).toBe('hls');
-	});
-
-	it('ignores HLS segments', () => {
-		expect(streamKind('https://cdn.example/x/seg-12.ts', 'xmlhttprequest')).toBeNull();
-		expect(streamKind('https://cdn.example/x/seg-12.m4s', 'xmlhttprequest')).toBeNull();
-		expect(streamKind('https://cdn.example/x/seg-12.aac', 'xmlhttprequest')).toBeNull();
-	});
-
-	it('detects an mp4 loaded by a media element', () => {
-		expect(streamKind('https://cdn.example/x/720.mp4?expires=1', 'media')).toBe('mp4');
-	});
-
-	it('ignores mp4 fetched by a script as a segment', () => {
-		expect(streamKind('https://cdn.example/x/chunk-3.mp4', 'xmlhttprequest')).toBeNull();
-	});
-
-	it('ignores unrelated requests', () => {
-		expect(streamKind('https://site.example/api/episodes?id=1', 'xmlhttprequest')).toBeNull();
-	});
-});
+import { parseVariants } from './hls';
 
 describe('parseVariants', () => {
 	const masterUrl = 'https://cdn.example/hls/master.m3u8?token=abc';

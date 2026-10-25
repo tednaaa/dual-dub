@@ -1,15 +1,16 @@
 <script setup lang="ts">
 import type { EarSettings } from '@/entities/preferences';
-import type { CapturedStream } from '@/entities/tab-state';
+import type { Dub } from '@/entities/tab-state';
 import type { Ear } from '@/shared/api';
 import { AudioLinesIcon, Volume2Icon, VolumeXIcon } from '@lucide/vue';
 import { Button, Card, Slider } from 'shonk-ui';
 import { computed } from 'vue';
 import { t } from '@/shared/lib';
+import { dubLabel } from './dub-label';
 
 const props = defineProps<{
 	ear: Ear;
-	stream: CapturedStream | undefined;
+	dub: Dub | undefined;
 	level: number | null;
 	canTake: boolean;
 }>();
@@ -22,13 +23,7 @@ const settings = defineModel<EarSettings>('settings', { required: true });
 
 const label = computed(() => t(props.ear === 'left' ? 'earLeft' : 'earRight'));
 
-const streamLabel = computed(() => {
-	if (!props.stream)
-		return t('notAssigned');
-
-	const { hostname, pathname } = new URL(props.stream.url);
-	return `${hostname} · ${pathname.split('/').at(-1)}`;
-});
+const dubName = computed(() => props.dub ? dubLabel(props.dub) : t('notAssigned'));
 
 const meterWidth = computed(() => `${Math.min(1, Math.sqrt(props.level ?? 0)) * 100}%`);
 
@@ -52,7 +47,7 @@ const muted = computed({
 		<div class="flex items-center gap-3">
 			<span
 				class="flex size-9 shrink-0 items-center justify-center rounded-full text-sm font-bold"
-				:class="stream ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'"
+				:class="dub ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'"
 				aria-hidden="true"
 			>
 				{{ ear === 'left' ? 'L' : 'R' }}
@@ -60,7 +55,7 @@ const muted = computed({
 
 			<div class="min-w-0 flex-1">
 				<h2 class="text-sm font-semibold">{{ label }}</h2>
-				<p class="truncate text-xs text-muted-foreground" :title="stream?.url">{{ streamLabel }}</p>
+				<p class="truncate text-xs text-muted-foreground" :title="dub?.source.url">{{ dubName }}</p>
 			</div>
 
 			<Button v-model:pressed="muted" variant="ghost" size="icon-sm" :aria-label="t('mute', label)">

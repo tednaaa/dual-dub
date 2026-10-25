@@ -1,5 +1,6 @@
-import type { CapturedStream } from '@/entities/tab-state';
+import type { DubRef } from '@/entities/tab-state';
 import type { Ear, PlayerReport, StartIssue } from '@/shared/api';
+import { sameDub } from '@/entities/tab-state';
 
 export type PanelAlert
 	= | { kind: 'start-failed'; issue: StartIssue }
@@ -10,7 +11,7 @@ export type PanelAlert
 
 interface AlertInput {
 	startIssue: StartIssue | null;
-	ears: Partial<Record<Ear, CapturedStream>>;
+	ears: Partial<Record<Ear, DubRef>>;
 	report: PlayerReport | null;
 	silent: Record<Ear, boolean>;
 }
@@ -20,7 +21,7 @@ const EARS: Ear[] = ['left', 'right'];
 export function pickAlert({ startIssue, ears, report, silent }: AlertInput): PanelAlert | null {
 	if (startIssue)
 		return { kind: 'start-failed', issue: startIssue };
-	if (ears.left && ears.left.url === ears.right?.url)
+	if (sameDub(ears.left, ears.right))
 		return { kind: 'same-stream' };
 	if (!report)
 		return null;

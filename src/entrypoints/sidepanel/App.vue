@@ -5,7 +5,7 @@ import { ArrowDownUpIcon, ChevronDownIcon, MonitorOffIcon, ShieldCheckIcon } fro
 import { Button, Collapsible, CollapsibleContent, CollapsibleTrigger } from 'shonk-ui';
 import { computed, ref, watch } from 'vue';
 import { earSettings, onboarded } from '@/entities/preferences';
-import { onboardingStep } from '@/entities/tab-state';
+import { findDub, onboardingStep } from '@/entities/tab-state';
 import { t } from '@/shared/lib';
 import { pickAlert } from './alerts';
 import AppFooter from './AppFooter.vue';
@@ -35,7 +35,7 @@ watch(tabId, () => {
 const running = computed(() => playerFrameId.value !== null);
 const step = computed(() => onboardingStep(state.value));
 const canEnable = computed(() => Boolean(state.value.ears.left && state.value.ears.right));
-const canTake = computed(() => state.value.streams.length > 0);
+const canTake = computed(() => state.value.playing !== null);
 const alert = computed(() => pickAlert({ startIssue: startIssue.value, ears: state.value.ears, report: report.value, silent: silent.value }));
 
 async function toggle(on: boolean) {
@@ -110,7 +110,7 @@ function swap() {
 					<EarCard
 						:settings="settings[ear]"
 						:ear="ear"
-						:stream="state.ears[ear]"
+						:dub="findDub(state, state.ears[ear])"
 						:level="report?.ears[ear].level ?? null"
 						:can-take="canTake"
 						@update:settings="updateSettings(ear, $event)"

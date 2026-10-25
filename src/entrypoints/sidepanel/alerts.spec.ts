@@ -11,14 +11,20 @@ function report(overrides: Partial<PlayerReport> = {}): PlayerReport {
 	};
 }
 
-const stream = (url: string) => ({ url, kind: 'hls' as const, frameId: 3 });
+const dub = (trackId: string) => ({ sourceUrl: 'https://cdn.example/khw4RhAaYa', trackId });
 const quiet = { left: false, right: false };
 
 describe('pickAlert', () => {
 	it('warns when both ears got the same dub', () => {
-		const ears = { left: stream('https://a/ru.m3u8'), right: stream('https://a/ru.m3u8') };
+		const ears = { left: dub('2'), right: dub('2') };
 
 		expect(pickAlert({ startIssue: null, ears, report: null, silent: quiet })).toEqual({ kind: 'same-stream' });
+	});
+
+	it('tells apart two tracks of one manifest', () => {
+		const ears = { left: dub('2'), right: dub('5') };
+
+		expect(pickAlert({ startIssue: null, ears, report: null, silent: quiet })).toBeNull();
 	});
 
 	it('asks for a click before blaming silence on the dub', () => {

@@ -1,21 +1,68 @@
-import type { Ear, StreamSource } from '@/shared/api';
+import type { Ear } from '@/shared/api';
+import type { ParsedManifest, StreamKind, Track } from '@/shared/lib';
+import { MAIN_TRACK, matchSegment } from '@/shared/lib';
 
-const STREAMS_LIMIT = 20;
+const SOURCES_LIMIT = 20;
 const VARIANTS_LIMIT = 200;
 
-export interface CapturedStream extends StreamSource {
+export interface Source {
+	url: string;
+	kind: StreamKind;
 	frameId: number;
+	tracks: Track[];
+}
+
+export interface DubRef {
+	sourceUrl: string;
+	trackId: string;
+}
+
+export interface Dub {
+	source: Source;
+	track: Track;
 }
 
 export interface TabState {
 	page: string | null;
-	streams: CapturedStream[];
+	sources: Source[];
 	variants: string[];
-	ears: Partial<Record<Ear, CapturedStream>>;
+	ears: Partial<Record<Ear, DubRef>>;
+	playing: DubRef | null;
 	playerFrameId: number | null;
 }
 
-export const EMPTY_TAB_STATE: TabState = { page: null, streams: [], variants: [], ears: {}, playerFrameId: null };
+export const EMPTY_TAB_STATE: TabState = { page: null, sources: [], variants: [], ears: {}, playing: null, playerFrameId: null };
+
+export function sameDub(a: DubRef | null | undefined, b: DubRef | null | undefined): boolean {
+	return Boolean(a && b && a.sourceUrl === b.sourceUrl && a.trackId === b.trackId);
+}
+
+export function findDub(state: TabState, ref: DubRef | null | undefined): Dub | undefined {
+	const source = state.sources.find(({ url }) => url === ref?.sourceUrl);
+	const track = source?.tracks.find(({ id }) => id === ref?.trackId);
+	return source && track ? { source, track } : undefined;
+}
+
+const dubOf = (source: Source, track: Track): DubRef => ({ sourceUrl: source.url, trackId: track.id });
+
+const earDubs = (state: TabState) => [state.ears.left, state.ears.right].filter(ear => ear !== undefined);
+
+const earSources = (state: TabState) => new Set(earDubs(state).map(ear => ear.sourceUrl));
+
+const isRunning = (state: TabState) => state.playerFrameId !== null;
+
+function keepRecent(state: TabState, sources: Source[]): Source[] {
+	const assigned = earSources(state);
+	return sources.filter((source, index) => index >= sources.length - SOURCES_LIMIT || assigned.has(source.url));
+}
+
+function play(state: TabState, dub: DubRef): TabState {
+	const fromHiddenPlayer = isRunning(state) && earDubs(state).some(ear => sameDub(ear, dub));
+	if (fromHiddenPlayer || sameDub(state.playing, dub))
+		return state;
+
+	return { ...state, playing: dub };
+}
 
 function pageOf(url: string) {
 	const { origin, pathname } = new URL(url);
@@ -31,37 +78,63 @@ export function navigate(state: TabState, url: string): TabState {
 }
 
 export function loadPage(state: TabState, url: string): TabState {
-	const { page, ears } = navigate(state, url);
-	return { ...EMPTY_TAB_STATE, page, ears };
+	const next = navigate(state, url);
+	const assigned = earSources(next);
+	return { ...EMPTY_TAB_STATE, page: next.page, ears: next.ears, sources: next.sources.filter(source => assigned.has(source.url)) };
 }
 
-export function recordStream(state: TabState, stream: CapturedStream): TabState {
-	const assigned = Object.values(state.ears).some(ear => ear.url === stream.url);
-	if (assigned || state.variants.includes(stream.url))
+export function recordSource(state: TabState, captured: Omit<Source, 'tracks'>): TabState {
+	const fromHiddenPlayer = isRunning(state) && earSources(state).has(captured.url);
+	if (fromHiddenPlayer || state.variants.includes(captured.url))
 		return state;
 
-	const streams = [...state.streams.filter(captured => captured.url !== stream.url), stream];
-	return { ...state, streams: streams.slice(-STREAMS_LIMIT) };
+	const known = state.sources.find(({ url }) => url === captured.url);
+	const source: Source = { ...captured, tracks: known?.tracks ?? [MAIN_TRACK] };
+	const sources = [...state.sources.filter(({ url }) => url !== captured.url), source];
+	const next = { ...state, sources: keepRecent(state, sources) };
+	const [only] = source.tracks;
+	return only && source.tracks.length === 1 ? play(next, dubOf(source, only)) : next;
 }
 
-export function recordVariants(state: TabState, variants: string[]): TabState {
-	return {
+export function recordManifest(state: TabState, url: string, { tracks, variants }: ParsedManifest): TabState {
+	const assigned = earSources(state);
+	const replaced = (source: Source) => source.url !== url && source.tracks.length > 1 && tracks.length > 1;
+	const sources = state.sources
+		.filter(source => (!variants.includes(source.url) || assigned.has(source.url)) && !replaced(source))
+		.map(source => source.url === url ? { ...source, tracks } : source);
+	const kept = (ear: DubRef | undefined) => sources.some(source => source.url === ear?.sourceUrl) ? ear : undefined;
+	const next = {
 		...state,
-		streams: state.streams.filter(captured => !variants.includes(captured.url)),
+		sources,
+		ears: { left: kept(state.ears.left), right: kept(state.ears.right) },
 		variants: [...new Set([...state.variants, ...variants])].slice(-VARIANTS_LIMIT),
 	};
+	if (!state.playing || findDub(next, state.playing))
+		return next;
+
+	const source = sources.find(candidate => candidate.url === url);
+	const [only] = tracks;
+	return { ...next, playing: source && only && tracks.length === 1 ? dubOf(source, only) : null };
+}
+
+export function recordSegment(state: TabState, url: string): TabState {
+	for (const source of state.sources) {
+		const track = matchSegment(source.tracks, url);
+		if (track)
+			return play(state, dubOf(source, track));
+	}
+	return state;
 }
 
 export function assignEar(state: TabState, ear: Ear): TabState {
-	const latest = state.streams.at(-1);
-	if (!latest)
+	if (!state.playing)
 		return state;
 
-	return { ...state, ears: { ...state.ears, [ear]: latest } };
+	return { ...state, ears: { ...state.ears, [ear]: state.playing } };
 }
 
 export function playerFrame(state: TabState): number | undefined {
-	return state.streams.at(-1)?.frameId ?? state.ears.left?.frameId ?? state.ears.right?.frameId;
+	return state.sources.at(-1)?.frameId;
 }
 
 export function swapEars(state: TabState): TabState {

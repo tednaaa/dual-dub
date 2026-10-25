@@ -23,6 +23,14 @@
 	"notAssigned": {
 		"message": "Озвучка не выбрана"
 	},
+	"dubNumber": {
+		"message": "Озвучка $NUMBER$",
+		"placeholders": {
+			"number": {
+				"content": "$1"
+			}
+		}
+	},
 	"takeCurrent": {
 		"message": "Взять текущую озвучку"
 	},

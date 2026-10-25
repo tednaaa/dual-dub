@@ -1,15 +1,7 @@
-import type { StreamKind } from '@/shared/api';
+import type { Format } from './types';
+import { MAIN_TRACK } from './track';
 
 const URI_ATTRIBUTE = /URI="([^"]+)"/;
-
-export function streamKind(url: string, requestType: string): StreamKind | null {
-	const pathname = new URL(url).pathname.toLowerCase();
-	if (pathname.endsWith('.m3u8'))
-		return 'hls';
-	if (pathname.endsWith('.mp4') && requestType === 'media')
-		return 'mp4';
-	return null;
-}
 
 export function parseVariants(manifest: string, manifestUrl: string): string[] {
 	const lines = manifest.split(/\r?\n/).map(line => line.trim());
@@ -22,3 +14,8 @@ export function parseVariants(manifest: string, manifestUrl: string): string[] {
 	});
 	return uris.map(uri => new URL(uri, manifestUrl).href);
 }
+
+export const hls: Format = {
+	detect: ({ url }) => new URL(url).pathname.toLowerCase().endsWith('.m3u8'),
+	parse: (manifest, url) => ({ tracks: [MAIN_TRACK], variants: parseVariants(manifest, url) }),
+};

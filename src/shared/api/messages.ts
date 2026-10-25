@@ -1,10 +1,11 @@
+import type { StreamKind, Track } from '@/shared/lib';
+
 export type Ear = 'left' | 'right';
 
-export type StreamKind = 'hls' | 'mp4';
-
-export interface StreamSource {
+export interface DubStream {
 	url: string;
 	kind: StreamKind;
+	track: Track;
 }
 
 export type StartIssue = 'no-video' | 'no-ears' | 'failed';
@@ -13,7 +14,7 @@ export type StartResult = { ok: true } | { ok: false; issue: StartIssue };
 
 export type PlayerCommand
 	= | { type: 'ping' }
-		| { type: 'start'; streams: Record<Ear, StreamSource> }
+		| { type: 'start'; dubs: Record<Ear, DubStream> }
 		| { type: 'stop' };
 
 export interface PlayerPing {

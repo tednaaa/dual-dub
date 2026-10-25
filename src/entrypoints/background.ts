@@ -1,15 +1,32 @@
 import type { Browser } from 'wxt/browser';
-import type { TabState } from '@/entities/tab-state';
-import type { PlayerCommand, PlayerPing, RuntimeRequest, StartResult } from '@/shared/api';
+import type { Dub, Source, TabState } from '@/entities/tab-state';
+import type { DubStream, PlayerCommand, PlayerPing, RuntimeRequest, StartResult } from '@/shared/api';
+import type { Format, ParsedManifest, StreamKind } from '@/shared/lib';
 import { onboarded } from '@/entities/preferences';
-import { assignEar, clearTabState, loadPage, navigate, playerFrame, readTabState, recordStream, recordVariants, swapEars, updateTabState } from '@/entities/tab-state';
-import { parseVariants, streamKind } from '@/shared/lib';
+import { assignEar, clearTabState, findDub, loadPage, navigate, playerFrame, readTabState, recordManifest, recordSegment, recordSource, swapEars, updateTabState } from '@/entities/tab-state';
+import { detectKind, FORMATS } from '@/shared/lib';
 
 const BADGE_TEXT = 'L·R';
 const BADGE_COLOR = '#8c5a3c';
 
 interface FirefoxSidebar {
 	sidebarAction: { toggle: () => Promise<void> };
+}
+
+const tabStates = new Map<number, TabState>();
+const fetchedManifests = new Map<number, Set<string>>();
+
+async function changeTabState(tabId: number, change: (state: TabState) => TabState) {
+	const state = await updateTabState(tabId, change);
+	tabStates.set(tabId, state);
+	return state;
+}
+
+async function cachedTabState(tabId: number) {
+	const state = tabStates.get(tabId) ?? await readTabState(tabId);
+	if (!tabStates.has(tabId))
+		tabStates.set(tabId, state);
+	return state;
 }
 
 async function allowCors(tabId: number, frameUrl: string) {
@@ -35,14 +52,55 @@ async function revokeCors(tabId: number) {
 	await browser.declarativeNetRequest.updateSessionRules({ removeRuleIds: [tabId] });
 }
 
-async function captureVariants(tabId: number, manifestUrl: string) {
-	const response = await fetch(manifestUrl, { credentials: 'include' }).catch(() => undefined);
-	if (!response?.ok)
-		return;
+function claimManifest(tabId: number, url: string) {
+	const fetched = fetchedManifests.get(tabId) ?? new Set<string>();
+	fetchedManifests.set(tabId, fetched);
+	if (fetched.has(url))
+		return false;
 
-	const variants = parseVariants(await response.text(), manifestUrl);
-	if (variants.length > 0)
-		await updateTabState(tabId, state => recordVariants(state, variants));
+	fetched.add(url);
+	return true;
+}
+
+async function fetchInFrame(tabId: number, frameId: number, url: string): Promise<string | null> {
+	const [injection] = await browser.scripting.executeScript({
+		target: { tabId, frameIds: [frameId] },
+		func: async (manifestUrl: string) => {
+			const response = await fetch(manifestUrl).catch(() => undefined);
+			return response?.ok ? response.text() : null;
+		},
+		args: [url],
+	}).catch(() => []);
+	return injection?.result ?? null;
+}
+
+function parseManifest({ parse }: Format, manifest: string, url: string): ParsedManifest | null {
+	try {
+		return parse?.(manifest, url) ?? null;
+	}
+	catch {
+		return null;
+	}
+}
+
+async function captureManifest(tabId: number, frameId: number, url: string, kind: StreamKind) {
+	const format = FORMATS[kind];
+	const manifest = format.parse && claimManifest(tabId, url) ? await fetchInFrame(tabId, frameId, url) : null;
+	const parsed = manifest === null ? null : parseManifest(format, manifest, url);
+	if (parsed)
+		await changeTabState(tabId, state => recordManifest(state, url, parsed));
+}
+
+async function captureSource(tabId: number, captured: Omit<Source, 'tracks'>) {
+	const state = await changeTabState(tabId, current => recordSource(current, captured));
+	if (state.sources.some(({ url }) => url === captured.url))
+		await captureManifest(tabId, captured.frameId, captured.url, captured.kind);
+}
+
+async function captureSegment(tabId: number, url: string) {
+	const state = await cachedTabState(tabId);
+	if (recordSegment(state, url) !== state)
+		await changeTabState(tabId, current => recordSegment(current, url));
 }
 
 async function pingPlayer(tabId: number, frameId: number): Promise<PlayerPing | undefined> {
@@ -57,7 +115,7 @@ async function ensurePlayer(tabId: number, frameId: number) {
 }
 
 async function setRunning(tabId: number, playerFrameId: number | null) {
-	await updateTabState(tabId, state => ({ ...state, playerFrameId }));
+	await changeTabState(tabId, state => ({ ...state, playerFrameId }));
 	await browser.action.setBadgeText({ tabId, text: playerFrameId === null ? '' : BADGE_TEXT });
 }
 
@@ -69,9 +127,14 @@ async function stopDualDub(tabId: number) {
 	await setRunning(tabId, null);
 }
 
+function dubStream({ source, track }: Dub): DubStream {
+	return { url: source.url, kind: source.kind, track };
+}
+
 async function startDualDub(tabId: number): Promise<StartResult> {
 	const state = await readTabState(tabId);
-	const { left, right } = state.ears;
+	const left = findDub(state, state.ears.left);
+	const right = findDub(state, state.ears.right);
 	const frameId = playerFrame(state);
 	if (!left || !right || frameId === undefined)
 		return { ok: false, issue: 'no-ears' };
@@ -80,7 +143,7 @@ async function startDualDub(tabId: number): Promise<StartResult> {
 		await stopDualDub(tabId);
 
 	const result = await ensurePlayer(tabId, frameId)
-		.then(() => browser.tabs.sendMessage(tabId, { type: 'start', streams: { left, right } } satisfies PlayerCommand, { frameId }))
+		.then(() => browser.tabs.sendMessage(tabId, { type: 'start', dubs: { left: dubStream(left), right: dubStream(right) } } satisfies PlayerCommand, { frameId }))
 		.catch((): StartResult => ({ ok: false, issue: 'failed' }));
 	if (!result.ok)
 		return result;
@@ -101,7 +164,7 @@ async function refreshRunning(tabId: number) {
 }
 
 async function changeEars(tabId: number, update: (state: TabState) => TabState) {
-	const state = await updateTabState(tabId, update);
+	const state = await changeTabState(tabId, update);
 	if (state.playerFrameId !== null)
 		await startDualDub(tabId);
 }
@@ -154,28 +217,39 @@ export default defineBackground(() => {
 	void browser.action.setBadgeBackgroundColor({ color: BADGE_COLOR });
 	openPanelOnActionClick();
 
-	browser.webRequest.onBeforeRequest.addListener((details) => {
-		const kind = details.tabId < 0 ? null : streamKind(details.url, details.type);
-		if (!kind)
+	browser.webRequest.onHeadersReceived.addListener(({ tabId, frameId, url, type, responseHeaders }) => {
+		if (tabId < 0)
 			return;
 
-		const { tabId, frameId, url } = details;
-		void updateTabState(tabId, state => recordStream(state, { url, kind, frameId }));
-		if (kind === 'hls')
-			void captureVariants(tabId, url);
-	}, { urls: ['<all_urls>'], types: ['media', 'xmlhttprequest'] });
+		const contentType = responseHeaders?.find(({ name }) => name.toLowerCase() === 'content-type')?.value ?? '';
+		const kind = detectKind({ url, type, contentType });
+		if (kind)
+			void captureSource(tabId, { url, kind, frameId });
+		else
+			void captureSegment(tabId, url);
+	}, { urls: ['<all_urls>'], types: ['media', 'xmlhttprequest'] }, ['responseHeaders']);
 
 	browser.webRequest.onBeforeRequest.addListener(({ tabId, url }) => {
-		if (tabId >= 0)
-			void updateTabState(tabId, state => loadPage(state, url));
+		if (tabId < 0)
+			return;
+
+		fetchedManifests.delete(tabId);
+		void changeTabState(tabId, state => loadPage(state, url));
 	}, { urls: ['<all_urls>'], types: ['main_frame'] });
 
 	browser.tabs.onUpdated.addListener((tabId, { url }) => {
-		if (url)
-			void updateTabState(tabId, state => navigate(state, url));
+		if (!url)
+			return;
+
+		void changeTabState(tabId, state => navigate(state, url)).then(({ sources }) => {
+			if (sources.length === 0)
+				fetchedManifests.delete(tabId);
+		});
 	});
 
 	browser.tabs.onRemoved.addListener((tabId) => {
+		tabStates.delete(tabId);
+		fetchedManifests.delete(tabId);
 		void clearTabState(tabId);
 		void revokeCors(tabId);
 	});
