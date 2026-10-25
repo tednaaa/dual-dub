@@ -1,31 +1,38 @@
 <script setup lang="ts">
 import type { EarSettings } from '@/entities/preferences';
-import type { Dub } from '@/entities/tab-state';
-import type { Ear } from '@/shared/api';
-import { AudioLinesIcon, Volume2Icon, VolumeXIcon } from '@lucide/vue';
-import { Button, Card, Slider } from 'shonk-ui';
+import type { Source } from '@/entities/tab-state';
+import type { DubRef, Ear } from '@/shared/api';
+import { PipetteIcon, Volume2Icon, VolumeXIcon } from '@lucide/vue';
+import { Button, Card, Slider, Tooltip } from 'shonk-ui';
 import { computed } from 'vue';
+import { sameDub } from '@/entities/tab-state';
 import { t } from '@/shared/lib';
-import { dubLabel } from './dub-label';
+import DubSelect from './DubSelect.vue';
 
 const props = defineProps<{
 	ear: Ear;
-	dub: Dub | undefined;
+	dub: DubRef | undefined;
+	sources: Source[];
+	playing: DubRef | null;
 	level: number | null;
-	canTake: boolean;
 }>();
 
 const emit = defineEmits<{
-	take: [];
+	assign: [dub: DubRef];
 }>();
 
 const settings = defineModel<EarSettings>('settings', { required: true });
 
 const label = computed(() => t(props.ear === 'left' ? 'earLeft' : 'earRight'));
 
-const dubName = computed(() => props.dub ? dubLabel(props.dub) : t('notAssigned'));
-
 const meterWidth = computed(() => `${Math.min(1, Math.sqrt(props.level ?? 0)) * 100}%`);
+
+const canTake = computed(() => props.playing !== null && !sameDub(props.playing, props.dub));
+
+function assign(dub: DubRef | null | undefined) {
+	if (dub)
+		emit('assign', { sourceUrl: dub.sourceUrl, trackId: dub.trackId });
+}
 
 const volume = computed({
 	get: () => [Math.round(settings.value.volume * 100)],
@@ -53,15 +60,30 @@ const muted = computed({
 				{{ ear === 'left' ? 'L' : 'R' }}
 			</span>
 
-			<div class="min-w-0 flex-1">
-				<h2 class="text-sm font-semibold">{{ label }}</h2>
-				<p class="truncate text-xs text-muted-foreground" :title="dub?.source.url">{{ dubName }}</p>
-			</div>
+			<h2 class="min-w-0 flex-1 text-sm font-semibold">{{ label }}</h2>
 
 			<Button v-model:pressed="muted" variant="ghost" size="icon-sm" :aria-label="t('mute', label)">
 				<VolumeXIcon v-if="muted" />
 				<Volume2Icon v-else />
 			</Button>
+		</div>
+
+		<div class="flex items-center gap-2">
+			<div class="min-w-0 flex-1">
+				<DubSelect
+					:model-value="dub ?? null"
+					:sources="sources"
+					:playing="playing"
+					:label="t('dubFor', label)"
+					@update:model-value="assign"
+				/>
+			</div>
+
+			<Tooltip :content="t('takePlaying')">
+				<Button variant="secondary" size="icon-sm" :disabled="!canTake" :aria-label="t('takePlayingFor', label)" @click="assign(playing)">
+					<PipetteIcon />
+				</Button>
+			</Tooltip>
 		</div>
 
 		<div
@@ -78,10 +100,5 @@ const muted = computed({
 		<div role="group" :aria-label="t('volume', label)">
 			<Slider v-model="volume" :max="100" :step="1" :disabled="muted" />
 		</div>
-
-		<Button variant="secondary" size="sm" class="w-full" :disabled="!canTake" @click="emit('take')">
-			<AudioLinesIcon />
-			{{ t('takeCurrent') }}
-		</Button>
 	</Card>
 </template>

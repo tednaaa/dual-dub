@@ -2,6 +2,11 @@ import type { StreamKind, Track } from '@/shared/lib';
 
 export type Ear = 'left' | 'right';
 
+export interface DubRef {
+	sourceUrl: string;
+	trackId: string;
+}
+
 export interface DubStream {
 	url: string;
 	kind: StreamKind;
@@ -37,7 +42,7 @@ export const PLAYER_REPORT_PORT = 'player-report';
 export type RuntimeRequest
 	= | { type: 'allow-cors' }
 		| { type: 'revoke-cors' }
-		| { type: 'assign'; tabId: number; ear: Ear }
+		| { type: 'assign'; tabId: number; ear: Ear; dub: DubRef }
 		| { type: 'swap'; tabId: number }
 		| { type: 'enable'; tabId: number }
 		| { type: 'disable'; tabId: number }

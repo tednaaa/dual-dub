@@ -1,22 +1,23 @@
 import type { TabState } from './model';
-import { sameDub } from './model';
 
-export const ONBOARDING_STEPS = [1, 2, 3, 4, 5] as const;
+export const ONBOARDING_STEPS = [1, 2, 3, 4] as const;
 
 export type OnboardingStep = (typeof ONBOARDING_STEPS)[number];
 
-export const ONBOARDING_DONE = 6;
+export const ONBOARDING_DONE = 5;
 
 export function onboardingStep(state: TabState): OnboardingStep | typeof ONBOARDING_DONE {
 	const { left, right } = state.ears;
-	const { playing } = state;
-	const assigned = left ?? right;
 
 	if (state.playerFrameId !== null)
 		return ONBOARDING_DONE;
 	if (left && right)
-		return 5;
-	if (assigned)
-		return playing && !sameDub(playing, assigned) ? 4 : 3;
-	return playing ? 2 : 1;
+		return 4;
+	if (left || right)
+		return 3;
+	return state.sources.length > 0 ? 2 : 1;
+}
+
+export function hasSingleDub(state: TabState): boolean {
+	return state.sources.flatMap(source => source.tracks).length < 2;
 }

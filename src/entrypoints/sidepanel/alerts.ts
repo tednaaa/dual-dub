@@ -1,5 +1,4 @@
-import type { DubRef } from '@/entities/tab-state';
-import type { Ear, PlayerReport, StartIssue } from '@/shared/api';
+import type { DubRef, Ear, PlayerReport, StartIssue } from '@/shared/api';
 import { sameDub } from '@/entities/tab-state';
 
 export type PanelAlert

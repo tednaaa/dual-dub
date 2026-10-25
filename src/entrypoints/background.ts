@@ -1,5 +1,5 @@
 import type { Browser } from 'wxt/browser';
-import type { Dub, Source, TabState } from '@/entities/tab-state';
+import type { CapturedSource, Dub, TabState } from '@/entities/tab-state';
 import type { DubStream, PlayerCommand, PlayerPing, RuntimeRequest, StartResult } from '@/shared/api';
 import type { Format, ParsedManifest, StreamKind } from '@/shared/lib';
 import { onboarded } from '@/entities/preferences';
@@ -91,7 +91,7 @@ async function captureManifest(tabId: number, frameId: number, url: string, kind
 		await changeTabState(tabId, state => recordManifest(state, url, parsed));
 }
 
-async function captureSource(tabId: number, captured: Omit<Source, 'tracks'>) {
+async function captureSource(tabId: number, captured: CapturedSource) {
 	const state = await changeTabState(tabId, current => recordSource(current, captured));
 	if (state.sources.some(({ url }) => url === captured.url))
 		await captureManifest(tabId, captured.frameId, captured.url, captured.kind);
@@ -133,8 +133,8 @@ function dubStream({ source, track }: Dub): DubStream {
 
 async function startDualDub(tabId: number): Promise<StartResult> {
 	const state = await readTabState(tabId);
-	const left = findDub(state, state.ears.left);
-	const right = findDub(state, state.ears.right);
+	const left = findDub(state.sources, state.ears.left);
+	const right = findDub(state.sources, state.ears.right);
 	const frameId = playerFrame(state);
 	if (!left || !right || frameId === undefined)
 		return { ok: false, issue: 'no-ears' };
@@ -186,7 +186,7 @@ function handleRequest(message: RuntimeRequest, sender: Browser.runtime.MessageS
 		case 'revoke-cors':
 			return senderTabId === undefined ? undefined : revokeCors(senderTabId);
 		case 'assign':
-			return changeEars(message.tabId, state => assignEar(state, message.ear));
+			return changeEars(message.tabId, state => assignEar(state, message.ear, message.dub));
 		case 'swap':
 			return changeEars(message.tabId, swapEars);
 		case 'enable':

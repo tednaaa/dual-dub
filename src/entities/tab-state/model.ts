@@ -1,4 +1,4 @@
-import type { Ear } from '@/shared/api';
+import type { DubRef, Ear } from '@/shared/api';
 import type { ParsedManifest, StreamKind, Track } from '@/shared/lib';
 import { MAIN_TRACK, matchSegment } from '@/shared/lib';
 
@@ -10,12 +10,10 @@ export interface Source {
 	kind: StreamKind;
 	frameId: number;
 	tracks: Track[];
+	number: number;
 }
 
-export interface DubRef {
-	sourceUrl: string;
-	trackId: string;
-}
+export type CapturedSource = Omit<Source, 'tracks' | 'number'>;
 
 export interface Dub {
 	source: Source;
@@ -37,8 +35,8 @@ export function sameDub(a: DubRef | null | undefined, b: DubRef | null | undefin
 	return Boolean(a && b && a.sourceUrl === b.sourceUrl && a.trackId === b.trackId);
 }
 
-export function findDub(state: TabState, ref: DubRef | null | undefined): Dub | undefined {
-	const source = state.sources.find(({ url }) => url === ref?.sourceUrl);
+export function findDub(sources: Source[], ref: DubRef | null | undefined): Dub | undefined {
+	const source = sources.find(({ url }) => url === ref?.sourceUrl);
 	const track = source?.tracks.find(({ id }) => id === ref?.trackId);
 	return source && track ? { source, track } : undefined;
 }
@@ -55,6 +53,8 @@ function keepRecent(state: TabState, sources: Source[]): Source[] {
 	const assigned = earSources(state);
 	return sources.filter((source, index) => index >= sources.length - SOURCES_LIMIT || assigned.has(source.url));
 }
+
+const nextNumber = (state: TabState) => Math.max(0, ...state.sources.map(({ number }) => number)) + 1;
 
 function play(state: TabState, dub: DubRef): TabState {
 	const fromHiddenPlayer = isRunning(state) && earDubs(state).some(ear => sameDub(ear, dub));
@@ -83,13 +83,13 @@ export function loadPage(state: TabState, url: string): TabState {
 	return { ...EMPTY_TAB_STATE, page: next.page, ears: next.ears, sources: next.sources.filter(source => assigned.has(source.url)) };
 }
 
-export function recordSource(state: TabState, captured: Omit<Source, 'tracks'>): TabState {
+export function recordSource(state: TabState, captured: CapturedSource): TabState {
 	const fromHiddenPlayer = isRunning(state) && earSources(state).has(captured.url);
 	if (fromHiddenPlayer || state.variants.includes(captured.url))
 		return state;
 
 	const known = state.sources.find(({ url }) => url === captured.url);
-	const source: Source = { ...captured, tracks: known?.tracks ?? [MAIN_TRACK] };
+	const source: Source = { ...captured, tracks: known?.tracks ?? [MAIN_TRACK], number: known?.number ?? nextNumber(state) };
 	const sources = [...state.sources.filter(({ url }) => url !== captured.url), source];
 	const next = { ...state, sources: keepRecent(state, sources) };
 	const [only] = source.tracks;
@@ -109,7 +109,7 @@ export function recordManifest(state: TabState, url: string, { tracks, variants 
 		ears: { left: kept(state.ears.left), right: kept(state.ears.right) },
 		variants: [...new Set([...state.variants, ...variants])].slice(-VARIANTS_LIMIT),
 	};
-	if (!state.playing || findDub(next, state.playing))
+	if (!state.playing || findDub(sources, state.playing))
 		return next;
 
 	const source = sources.find(candidate => candidate.url === url);
@@ -126,11 +126,11 @@ export function recordSegment(state: TabState, url: string): TabState {
 	return state;
 }
 
-export function assignEar(state: TabState, ear: Ear): TabState {
-	if (!state.playing)
+export function assignEar(state: TabState, ear: Ear, dub: DubRef): TabState {
+	if (!findDub(state.sources, dub))
 		return state;
 
-	return { ...state, ears: { ...state.ears, [ear]: state.playing } };
+	return { ...state, ears: { ...state.ears, [ear]: dub } };
 }
 
 export function playerFrame(state: TabState): number | undefined {

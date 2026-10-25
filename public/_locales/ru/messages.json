@@ -23,6 +23,9 @@
 	"notAssigned": {
 		"message": "Озвучка не выбрана"
 	},
+	"separateStreams": {
+		"message": "Отдельные потоки"
+	},
 	"dubNumber": {
 		"message": "Озвучка $NUMBER$",
 		"placeholders": {
@@ -31,8 +34,27 @@
 			}
 		}
 	},
-	"takeCurrent": {
-		"message": "Взять текущую озвучку"
+	"dubFor": {
+		"message": "$EAR$ — озвучка",
+		"placeholders": {
+			"ear": {
+				"content": "$1"
+			}
+		}
+	},
+	"inPlayer": {
+		"message": "в плеере"
+	},
+	"takePlaying": {
+		"message": "Как в плеере сайта"
+	},
+	"takePlayingFor": {
+		"message": "$EAR$ — как в плеере сайта",
+		"placeholders": {
+			"ear": {
+				"content": "$1"
+			}
+		}
 	},
 	"volume": {
 		"message": "$EAR$ — громкость",
@@ -80,27 +102,24 @@
 		"message": "Кликни по плееру сайта и включи серию"
 	},
 	"step2Title": {
-		"message": "Возьми первую озвучку"
+		"message": "Выбери озвучку для одного уха"
 	},
 	"step2Description": {
-		"message": "Нажми «Взять текущую озвучку» у левого уха"
+		"message": "Список у левого или правого уха"
 	},
 	"step3Title": {
-		"message": "Переключи озвучку"
+		"message": "Выбери озвучку для другого уха"
 	},
 	"step3Description": {
-		"message": "Выбери в плеере сайта вторую озвучку"
+		"message": "Другую озвучку из списка"
+	},
+	"step3SwitchDescription": {
+		"message": "Переключи озвучку в плеере сайта — она появится в списке"
 	},
 	"step4Title": {
-		"message": "Возьми вторую озвучку"
-	},
-	"step4Description": {
-		"message": "Нажми «Взять текущую озвучку» у правого уха"
-	},
-	"step5Title": {
 		"message": "Включи"
 	},
-	"step5Description": {
+	"step4Description": {
 		"message": "Переключатель вверху"
 	},
 	"emptyTitle": {
@@ -124,7 +143,7 @@
 		}
 	},
 	"alertSilentDescription": {
-		"message": "Сайт мог закрыть эту озвучку. Выбери в плеере другую и возьми её заново"
+		"message": "Сайт мог закрыть эту озвучку. Выбери для уха другую"
 	},
 	"alertLoadFailedTitle": {
 		"message": "$EAR$ — озвучка не загрузилась",
@@ -135,13 +154,13 @@
 		}
 	},
 	"alertLoadFailedDescription": {
-		"message": "Переключи озвучку в плеере туда и обратно и возьми её заново"
+		"message": "Переключи озвучку в плеере туда и обратно и выбери её заново"
 	},
 	"alertSameTitle": {
 		"message": "В обоих ушах одна озвучка"
 	},
 	"alertSameDescription": {
-		"message": "Выбери в плеере другую озвучку и возьми её для одного уха"
+		"message": "Выбери для одного уха другую озвучку"
 	},
 	"alertNoVideoTitle": {
 		"message": "Видео не найдено"

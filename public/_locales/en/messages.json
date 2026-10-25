@@ -23,6 +23,9 @@
 	"notAssigned": {
 		"message": "No dub yet"
 	},
+	"separateStreams": {
+		"message": "Separate streams"
+	},
 	"dubNumber": {
 		"message": "Dub $NUMBER$",
 		"placeholders": {
@@ -31,8 +34,27 @@
 			}
 		}
 	},
-	"takeCurrent": {
-		"message": "Take current dub"
+	"dubFor": {
+		"message": "$EAR$ — dub",
+		"placeholders": {
+			"ear": {
+				"content": "$1"
+			}
+		}
+	},
+	"inPlayer": {
+		"message": "in player"
+	},
+	"takePlaying": {
+		"message": "Same as the site player"
+	},
+	"takePlayingFor": {
+		"message": "$EAR$ — same as the site player",
+		"placeholders": {
+			"ear": {
+				"content": "$1"
+			}
+		}
 	},
 	"volume": {
 		"message": "$EAR$ — volume",
@@ -80,27 +102,24 @@
 		"message": "Click the site player and start the episode"
 	},
 	"step2Title": {
-		"message": "Take the first dub"
+		"message": "Pick a dub for one ear"
 	},
 	"step2Description": {
-		"message": "Press “Take current dub” on the left ear"
+		"message": "The list on the left or right ear"
 	},
 	"step3Title": {
-		"message": "Switch the dub"
+		"message": "Pick a dub for the other ear"
 	},
 	"step3Description": {
-		"message": "Pick the second dub in the site player"
+		"message": "Another dub from the list"
+	},
+	"step3SwitchDescription": {
+		"message": "Switch the dub in the site player and it shows up in the list"
 	},
 	"step4Title": {
-		"message": "Take the second dub"
-	},
-	"step4Description": {
-		"message": "Press “Take current dub” on the right ear"
-	},
-	"step5Title": {
 		"message": "Turn it on"
 	},
-	"step5Description": {
+	"step4Description": {
 		"message": "Use the switch at the top"
 	},
 	"emptyTitle": {
@@ -124,7 +143,7 @@
 		}
 	},
 	"alertSilentDescription": {
-		"message": "The site may block this dub. Pick another one in the player and take it again"
+		"message": "The site may block this dub. Pick another one for this ear"
 	},
 	"alertLoadFailedTitle": {
 		"message": "$EAR$ — dub failed to load",
@@ -135,13 +154,13 @@
 		}
 	},
 	"alertLoadFailedDescription": {
-		"message": "Switch the dub in the player back and forth, then take it again"
+		"message": "Switch the dub in the player back and forth, then pick it again"
 	},
 	"alertSameTitle": {
 		"message": "Both ears play one dub"
 	},
 	"alertSameDescription": {
-		"message": "Pick another dub in the player and take it for one ear"
+		"message": "Pick another dub for one ear"
 	},
 	"alertNoVideoTitle": {
 		"message": "No video found"

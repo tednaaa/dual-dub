@@ -7,13 +7,14 @@ import { t } from '@/shared/lib';
 
 const props = defineProps<{
 	step: number;
+	singleDub: boolean;
 }>();
 
-const steps = ONBOARDING_STEPS.map(step => ({
+const steps = computed(() => ONBOARDING_STEPS.map(step => ({
 	step,
 	title: t(`step${step}Title`),
-	description: t(`step${step}Description`),
-}));
+	description: step === 3 && props.singleDub ? t('step3SwitchDescription') : t(`step${step}Description`),
+})));
 
 const current = computed(() => Math.min(props.step, ONBOARDING_STEPS.length));
 </script>
@@ -38,7 +39,7 @@ const current = computed(() => Math.min(props.step, ONBOARDING_STEPS.length));
 			</div>
 
 			<StepperSeparator
-				v-if="item.step < steps.length"
+				v-if="item.step < ONBOARDING_STEPS.length"
 				class="absolute top-8 bottom-1 left-3.5 w-0.5 -translate-x-1/2 rounded-full"
 			/>
 		</StepperItem>

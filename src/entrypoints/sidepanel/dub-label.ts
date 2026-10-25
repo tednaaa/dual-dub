@@ -1,4 +1,4 @@
-import type { Dub } from '@/entities/tab-state';
+import type { NumberedDub } from './dub-groups';
 import { t } from '@/shared/lib';
 
 const LANGUAGE_CODE = /^[a-z]{2,3}/i;
@@ -10,13 +10,8 @@ function languageName(lang: string | null) {
 	return code ? languageNames.of(code) : undefined;
 }
 
-export function dubLabel({ source, track }: Dub): string {
-	if (source.tracks.length === 1) {
-		const { hostname, pathname } = new URL(source.url);
-		return `${hostname} · ${pathname.split('/').at(-1)}`;
-	}
-
-	const name = track.label ?? t('dubNumber', String(source.tracks.indexOf(track) + 1));
+export function trackName({ dub: { track }, number }: NumberedDub): string {
+	const name = track.label ?? t('dubNumber', String(number));
 	const language = languageName(track.lang);
 	return language ? `${name} · ${language}` : name;
 }

@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import type { EarSettings } from '@/entities/preferences';
-import type { Ear, StartIssue, StartResult } from '@/shared/api';
+import type { DubRef, Ear, StartIssue, StartResult } from '@/shared/api';
 import { ArrowDownUpIcon, ChevronDownIcon, MonitorOffIcon, ShieldCheckIcon } from '@lucide/vue';
 import { Button, Collapsible, CollapsibleContent, CollapsibleTrigger } from 'shonk-ui';
 import { computed, ref, watch } from 'vue';
 import { earSettings, onboarded } from '@/entities/preferences';
-import { findDub, onboardingStep } from '@/entities/tab-state';
+import { hasSingleDub, onboardingStep } from '@/entities/tab-state';
 import { t } from '@/shared/lib';
 import { pickAlert } from './alerts';
 import AppFooter from './AppFooter.vue';
@@ -34,8 +34,8 @@ watch(tabId, () => {
 
 const running = computed(() => playerFrameId.value !== null);
 const step = computed(() => onboardingStep(state.value));
+const singleDub = computed(() => hasSingleDub(state.value));
 const canEnable = computed(() => Boolean(state.value.ears.left && state.value.ears.right));
-const canTake = computed(() => state.value.playing !== null);
 const alert = computed(() => pickAlert({ startIssue: startIssue.value, ears: state.value.ears, report: report.value, silent: silent.value }));
 
 async function toggle(on: boolean) {
@@ -53,9 +53,9 @@ async function toggle(on: boolean) {
 		startIssue.value = result.issue;
 }
 
-function take(ear: Ear) {
+function assign(ear: Ear, dub: DubRef) {
 	if (tabId.value !== undefined)
-		void send({ type: 'assign', tabId: tabId.value, ear });
+		void send({ type: 'assign', tabId: tabId.value, ear, dub });
 }
 
 function updateSettings(ear: Ear, next: EarSettings) {
@@ -97,11 +97,11 @@ function swap() {
 					</Button>
 				</CollapsibleTrigger>
 				<CollapsibleContent class="pt-2">
-					<OnboardingSteps :step="step" />
+					<OnboardingSteps :step="step" :single-dub="singleDub" />
 				</CollapsibleContent>
 			</Collapsible>
 
-			<OnboardingSteps v-else :step="step" />
+			<OnboardingSteps v-else :step="step" :single-dub="singleDub" />
 
 			<AudioAlert v-if="alert" :alert="alert" />
 
@@ -110,11 +110,12 @@ function swap() {
 					<EarCard
 						:settings="settings[ear]"
 						:ear="ear"
-						:dub="findDub(state, state.ears[ear])"
+						:dub="state.ears[ear]"
+						:sources="state.sources"
+						:playing="state.playing"
 						:level="report?.ears[ear].level ?? null"
-						:can-take="canTake"
 						@update:settings="updateSettings(ear, $event)"
-						@take="take(ear)"
+						@assign="assign(ear, $event)"
 					/>
 
 					<Button
